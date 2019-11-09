@@ -45,7 +45,10 @@ void verify(const FunctionCallbackInfo<Value>& args) {
   unsigned int k = 9;
 
   if (args.Length() < 2) {
-    return ThrowException(Exception::Error(String::New("Wrong number of arguments")));
+    do {
+        isolate->ThrowException(Exception::Error(String::NewFromUtf8(isolate, "Wrong number of arguments")));
+        return;
+    } while (0);
   }
 
   Local<Object> header = args[0]->ToObject(isolate);
@@ -58,13 +61,16 @@ void verify(const FunctionCallbackInfo<Value>& args) {
   }
 
   if(!Buffer::HasInstance(header) || !Buffer::HasInstance(solution)) {
-    return ThrowException(Exception::Error(String::New("Arguments should be buffer objects.")));
+    do {
+        isolate->ThrowException(Exception::Error(String::NewFromUtf8(isolate, "Arguments should be buffer objects.")));
+        return;
+    } while (0);
   }
 
   const char *hdr = Buffer::Data(header);
   if(Buffer::Length(header) != 140) {
     //invalid hdr length
-    scope.Close(Boolean::New(false));
+    args.GetReturnValue().Set(Boolean::New(isolate, false));
     return;
   }
   const char *soln = Buffer::Data(solution);
@@ -72,7 +78,7 @@ void verify(const FunctionCallbackInfo<Value>& args) {
   std::vector<unsigned char> vecSolution(soln, soln + Buffer::Length(solution));
 
   bool result = verifyEH(hdr, vecSolution, n, k);
-  scope.Close(Boolean::New(result));
+  args.GetReturnValue().Set(Boolean::New(isolate, result));
 }
 
 
