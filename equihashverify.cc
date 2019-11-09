@@ -5,8 +5,9 @@
 #include <stdint.h>
 #include "crypto/equihash.h"
 
-
 #include <vector>
+
+using namespace node;
 using namespace v8;
 
 int verifyEH(const char *hdr, const std::vector<unsigned char> &soln, unsigned int n = 200, unsigned int k = 9){
@@ -36,51 +37,47 @@ int verifyEH(const char *hdr, const std::vector<unsigned char> &soln, unsigned i
   return isValid;
 }
 
-void Verify(const v8::FunctionCallbackInfo<Value>& args) {
-  Isolate* isolate = Isolate::GetCurrent();
+void verify(const FunctionCallbackInfo<Value>& args) {
+  Isolate* isolate = args.GetIsolate();
   HandleScope scope(isolate);
 
   unsigned int n = 200;
   unsigned int k = 9;
 
   if (args.Length() < 2) {
-  isolate->ThrowException(Exception::TypeError(
-    String::NewFromUtf8(isolate, "Wrong number of arguments")));
-  return;
+    return ThrowException(Exception::Error(String::New("Wrong number of arguments")));
   }
 
-  Local<Object> header = args[0]->ToObject();
-  Local<Object> solution = args[1]->ToObject();
+  Local<Object> header = args[0]->ToObject(isolate);
+  Local<Object> solution = args[1]->ToObject(isolate);
 
   if (args.Length() == 4) {
-    n = args[2]->Uint32Value();
-    k = args[3]->Uint32Value();
+    Local<Context> currentContext = isolate->GetCurrentContext();
+    n = args[2]->Uint32Value(currentContext).FromJust();
+    k = args[3]->Uint32Value(currentContext).FromJust();
   }
 
-  if(!node::Buffer::HasInstance(header) || !node::Buffer::HasInstance(solution)) {
-  isolate->ThrowException(Exception::TypeError(
-    String::NewFromUtf8(isolate, "Arguments should be buffer objects.")));
-  return;
+  if(!Buffer::HasInstance(header) || !Buffer::HasInstance(solution)) {
+    return ThrowException(Exception::Error(String::New("Arguments should be buffer objects.")));
   }
 
-  const char *hdr = node::Buffer::Data(header);
-  if(node::Buffer::Length(header) != 140) {
-	  //invalid hdr length
-	  args.GetReturnValue().Set(false);
-	  return;
+  const char *hdr = Buffer::Data(header);
+  if(Buffer::Length(header) != 140) {
+    //invalid hdr length
+    scope.Close(Boolean::New(false));
+    return;
   }
-  const char *soln = node::Buffer::Data(solution);
+  const char *soln = Buffer::Data(solution);
 
-  std::vector<unsigned char> vecSolution(soln, soln + node::Buffer::Length(solution));
+  std::vector<unsigned char> vecSolution(soln, soln + Buffer::Length(solution));
 
   bool result = verifyEH(hdr, vecSolution, n, k);
-  args.GetReturnValue().Set(result);
-
+  scope.Close(Boolean::New(result));
 }
 
 
-void Init(Handle<Object> exports) {
-  NODE_SET_METHOD(exports, "verify", Verify);
+void init(Handle<Object> exports) {
+  NODE_SET_METHOD(exports, "verify", verify);
 }
 
-NODE_MODULE(equihashverify, Init)
+NODE_MODULE(equihashverify, init)
