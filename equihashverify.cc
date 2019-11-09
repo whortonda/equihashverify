@@ -39,7 +39,6 @@ int verifyEH(const char *hdr, const std::vector<unsigned char> &soln, unsigned i
 
 void verify(const FunctionCallbackInfo<Value>& args) {
   Isolate* isolate = args.GetIsolate();
-  HandleScope scope(isolate);
 
   unsigned int n = 200;
   unsigned int k = 9;
@@ -82,7 +81,7 @@ void verify(const FunctionCallbackInfo<Value>& args) {
 }
 
 
-void init(Handle<Object> exports) {
+void init(Local<Object> exports) {
   NODE_SET_METHOD(exports, "verify", verify);
 }
 
