@@ -61,8 +61,6 @@ void verify(const FunctionCallbackInfo<Value>& args) {
     } while (0);
   }
 
-  Local<Context> currentContext = isolate->GetCurrentContext();
-
   const char *hdr = Buffer::Data(header);
   if(Buffer::Length(header) != 140) {
     //invalid hdr length
@@ -74,7 +72,9 @@ void verify(const FunctionCallbackInfo<Value>& args) {
 
   std::vector<unsigned char> vecSolution(soln, soln + Buffer::Length(solution));
 
-  String::Utf8Value personalizationString(args[2]);
+  String::Utf8Value personalizationString(isolate, args[2]);
+
+  Local<Context> currentContext = isolate->GetCurrentContext();
 
   bool result = verifyEH(hdr, vecSolution, ToCString(personalizationString), args[2]->Uint32Value(currentContext).FromJust(), args[3]->Uint32Value(currentContext).FromJust());
 
