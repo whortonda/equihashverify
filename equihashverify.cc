@@ -10,42 +10,43 @@
 using namespace node;
 using namespace v8;
 
-int verifyEH(const char *hdr, const std::vector<unsigned char> &soln, unsigned int n = 200, unsigned int k = 9){
+const char* ToCString(const String::Utf8Value& value) {
+  return *value ? *value : "<string conversion failed>";
+}
+
+int verifyEH(const char *hdr, const std::vector<unsigned char> &soln, const char *personalizationString, unsigned int N, unsigned int K) {
   // Hash state
   crypto_generichash_blake2b_state state;
-  EhInitialiseState(n, k, state);
+  EhInitialiseState(N, K, state, personalizationString);
 
   crypto_generichash_blake2b_update(&state, (const unsigned char*)hdr, 140);
 
   bool isValid;
-  if (n == 96 && k == 3) {
-      isValid = Eh96_3.IsValidSolution(state, soln);
-  } else if (n == 200 && k == 9) {
-      isValid = Eh200_9.IsValidSolution(state, soln);
-  } else if (n == 144 && k == 5) {
-      isValid = Eh144_5.IsValidSolution(state, soln);
-  } else if (n == 192 && k == 7) {
-      isValid = Eh192_7.IsValidSolution(state, soln);
-  } else if (n == 96 && k == 5) {
-      isValid = Eh96_5.IsValidSolution(state, soln);
-  } else if (n == 48 && k == 5) {
-      isValid = Eh48_5.IsValidSolution(state, soln);
-  } else {
-      throw std::invalid_argument("Unsupported Equihash parameters");
-  }
-  
+  EhIsValidSolution(N, K, state, soln, isValid);
+
   return isValid;
 }
 
 void verify(const FunctionCallbackInfo<Value>& args) {
   Isolate* isolate = args.GetIsolate();
 
-  unsigned int n = 200;
-  unsigned int k = 9;
-
-  if (args.Length() < 2) {
+  if (args.Length() < 4) {
     do {
         isolate->ThrowException(Exception::Error(String::NewFromUtf8(isolate, "Wrong number of arguments")));
+        return;
+    } while (0);
+  }
+
+  if (!args[3]->IsInt32() || !args[4]->IsInt32()) {
+    do {
+        isolate->ThrowException(Exception::Error(String::NewFromUtf8(isolate, "Fouth and fifth parameters should be equihash parameters (n, k)")));
+        return;
+    } while (0);
+  }
+
+  if (!args[2]->IsString()) {
+    do {
+        isolate->ThrowException(Exception::Error(String::NewFromUtf8(isolate, "Third argument should be the personalization string.")));
         return;
     } while (0);
   }
@@ -53,18 +54,14 @@ void verify(const FunctionCallbackInfo<Value>& args) {
   Local<Object> header = args[0]->ToObject(isolate);
   Local<Object> solution = args[1]->ToObject(isolate);
 
-  if (args.Length() == 4) {
-    Local<Context> currentContext = isolate->GetCurrentContext();
-    n = args[2]->Uint32Value(currentContext).FromJust();
-    k = args[3]->Uint32Value(currentContext).FromJust();
-  }
-
   if(!Buffer::HasInstance(header) || !Buffer::HasInstance(solution)) {
     do {
-        isolate->ThrowException(Exception::Error(String::NewFromUtf8(isolate, "Arguments should be buffer objects.")));
+        isolate->ThrowException(Exception::Error(String::NewFromUtf8(isolate, "First two arguments should be buffer objects.")));
         return;
     } while (0);
   }
+
+  Local<Context> currentContext = isolate->GetCurrentContext();
 
   const char *hdr = Buffer::Data(header);
   if(Buffer::Length(header) != 140) {
@@ -72,11 +69,15 @@ void verify(const FunctionCallbackInfo<Value>& args) {
     args.GetReturnValue().Set(Boolean::New(isolate, false));
     return;
   }
+
   const char *soln = Buffer::Data(solution);
 
   std::vector<unsigned char> vecSolution(soln, soln + Buffer::Length(solution));
 
-  bool result = verifyEH(hdr, vecSolution, n, k);
+  String::Utf8Value personalizationString(args[2]);
+
+  bool result = verifyEH(hdr, vecSolution, ToCString(personalizationString), args[2]->Uint32Value(currentContext).FromJust(), args[3]->Uint32Value(currentContext).FromJust());
+
   args.GetReturnValue().Set(Boolean::New(isolate, result));
 }
 

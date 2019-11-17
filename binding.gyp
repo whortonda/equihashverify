@@ -27,9 +27,6 @@
                 "/usr/include",
                 "/usr/include/boost",
             ],
-            "libararies": [
-                "/usr/lib/x86_64-linux-gnu"
-            ],
             "defines": [
             "HAVE_DECL_STRNLEN=1",
             "HAVE_BYTESWAP_H=1"
