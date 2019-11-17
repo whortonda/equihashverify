@@ -76,7 +76,7 @@ void verify(const FunctionCallbackInfo<Value>& args) {
 
   Local<Context> currentContext = isolate->GetCurrentContext();
 
-  bool result = verifyEH(hdr, vecSolution, ToCString(personalizationString), args[2]->Uint32Value(currentContext).FromJust(), args[3]->Uint32Value(currentContext).FromJust());
+  bool result = verifyEH(hdr, vecSolution, ToCString(personalizationString), args[3]->Uint32Value(currentContext).FromJust(), args[4]->Uint32Value(currentContext).FromJust());
 
   args.GetReturnValue().Set(Boolean::New(isolate, result));
 }
