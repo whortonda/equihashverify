@@ -19,13 +19,16 @@
                 "crypto/sha1.cpp",
                 "crypto/sha256.cpp",
                 "crypto/sha512.cpp",
-                "equihashverify.cc"                
+                "equihashverify.cc"
             ],
             "include_dirs": [
                 "<!(node -e \"require('nan')\")",
                 ".",
                 "/usr/include",
                 "/usr/include/boost",
+            ],
+            "libararies": [
+                "/usr/lib/x86_64-linux-gnu"
             ],
             "defines": [
             "HAVE_DECL_STRNLEN=1",
@@ -36,7 +39,6 @@
                 "-Wl,--whole-archive",
                 "-fPIC",
                 "-fexceptions"
-                
             ],
             "link_settings": {
                 "libraries": [
